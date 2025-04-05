@@ -1,19 +1,30 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { Items, ItemsDocument } from './schema/items.schema';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class ItemsService {
-  create(createItemDto: CreateItemDto) {
-    return 'This action adds a new item';
+  constructor(
+    @InjectModel(Items.name) private itemsModule: Model<ItemsDocument>,
+  ) {}
+  async create(createItemDto: CreateItemDto): Promise<ItemsDocument> {
+    const createdItems = new this.itemsModule(createItemDto);
+    return createdItems.save();
   }
 
-  findAll() {
-    return `This action returns all items`;
+  async findAll(): Promise<Items[]> {
+    return this.itemsModule.find().exec(); // 🔥 Obtiene los datos desde MongoDB
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} item`;
+  async findOne(id: string): Promise<Items> {
+    const item = await this.itemsModule.findById(id).exec();
+    if (!item) {
+      throw new NotFoundException(`Item con ID ${id} no encontrado`);
+    }
+    return item;
   }
 
   update(id: number, updateItemDto: UpdateItemDto) {
